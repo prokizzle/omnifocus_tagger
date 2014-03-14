@@ -1,4 +1,5 @@
 require 'sequel'
+require 'terminal-notifier'
 
 module OmniFocusTools
   class TagConverter
@@ -9,6 +10,8 @@ module OmniFocusTools
       @tasks = $db[:task]
       @contexts = $db[:context]
       @projects = $db[:projectinfo]
+      @tasks_were_run = false
+      @count = 0
       # id = @projects.first[:task]
       # puts @tasks.where(persistentIdentifier: id).first[:name]
     end
@@ -31,21 +34,27 @@ module OmniFocusTools
     # Finds all tagged tasks, detects tag content, applies contexts to tasks
     #
     def run
-      print "Converting tags to contexts..."
+      TerminalNotifier.notify("Checking for OmniFocus tags to convert.", :title => "Omnifocus Tagger", sender: 'com.omnigroup.omnifocus')
       @tasks.where(Sequel.like(:noteXMLData, '%#%'), :dateCompleted=>nil).each do |r|
         # puts r[:name]
         tag = r[:noteXMLData].match(/<lit>#(.+)<\/lit>/)[1]
         change_context(r[:name], tag.capitalize)
         @tasks.where(name: r[:name]).update(noteXMLData: "")
+        @tasks_were_run = true
+        @count += 1
         # Hr.print "="
       end
       sleep 2
-      print "\rRestarting OmniFocus...         "
+      if @tasks_were_run
+        TerminalNotifier.notify("#{@count} tags converted. Restarting OmniFocus.", :title => "Omnifocus Tagger", sender: 'com.omnigroup.omnifocus')
 
-      %x{osascript -e 'tell application "OmniFocus" to quit'}
+        %x{osascript -e 'tell application "OmniFocus" to quit'}
 
-      %x{osascript -e 'tell application "OmniFocus" to activate'}
-      sleep 2
+        %x{osascript -e 'tell application "OmniFocus" to activate'}
+        sleep 2
+      else
+        TerminalNotifier.notify("No tags were found", :title => "Omnifocus Tagger", sender: 'com.omnigroup.omnifocus')
+      end
       print "\r                               "
       # @tasks.where(Sequel.like(:noteXMLData, '%#%'), :dateCompleted=>nil).each do |r|
       #   # puts r[:name]

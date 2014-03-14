@@ -1,0 +1,12 @@
+GEM
+  remote: http://rubygems.org/
+  specs:
+    sequel (4.8.0)
+    terminal-notifier (1.5.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  sequel
+  terminal-notifier
